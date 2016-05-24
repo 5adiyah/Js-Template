@@ -1,5 +1,6 @@
 var gulp = require('gulp'),
     browserify = require('browserify'),
+    concat = require('gulp-concat'),
     source = require('vinyl-source-stream'),
     uglify = require('gulp-uglify'),
     compass = require('gulp-compass'),
@@ -8,12 +9,29 @@ var gulp = require('gulp'),
     sass = require('gulp-sass'),
     sourcemaps = require('gulp-sourcemaps'),
     plumber = require('gulp-plumber'); //Keeps watch going even if you make a syntax error
+var lib = require('bower-files')({
+  "overrides":{
+    "bootstrap" : {
+      "main": [
+        "less/bootstrap.less",
+        "dist/css/bootstrap.css",
+        "dist/js/bootstrap.js"
+      ]
+    }
+  }
+});
 
 gulp.task('jsBrowserify', function() {
   return browserify({ entries: ['./js/main.js'] })
     .bundle()
     .pipe(source('app.js'))
-    .pipe(gulp.dest('./app/js'));
+    .pipe(gulp.dest('./build/js'));
+});
+
+gulp.task('concatInterface', function() {
+  return gulp.src('js/**/*.js')
+    .pipe(concat('allConcat.js'))
+    .pipe(gulp.dest('./tmp'));
 });
 
 gulp.task('scripts', function(){
@@ -44,11 +62,26 @@ gulp.task('serve', function() {
       index: "index.html"
     }
   });
+  gulp.start('watch');
+});
 
-  gulp.watch(['js/*.js'], ['jsBuild']);
-  gulp.watch(['bower.json'], ['bowerBuild']);
-  gulp.watch(["scss/*.scss"], ['cssBuild']);
-  gulp.watch(["/*.html"], ['htmlBuild']);
+gulp.task('bowerJS', function () {
+  return gulp.src(lib.ext('js').files)
+    .pipe(concat('vendor.min.js'))
+    .pipe(uglify())
+    .pipe(gulp.dest('./build/js'));
+});
+
+gulp.task('bowerCSS', function () {
+  return gulp.src(lib.ext('css').files)
+    .pipe(concat('vendor.css'))
+    .pipe(gulp.dest('./build/css'));
+});
+
+gulp.task('bower', ['bowerJS', 'bowerCSS']);
+
+gulp.task('build', ['jsBuild', 'bowerBuild', "cssBuild"], function(){
+
 });
 
 gulp.task('jsBuild', ['jsBrowserify', 'jshint'], function(){
@@ -69,7 +102,6 @@ gulp.task('styleBuild', function(){
 
 //////// WATCH TASKS //////////
 gulp.task('watch', function(){
-  gulp.watch('js/**/*.js', ['scripts']);
   gulp.watch(['js/*.js'], ['jsBuild']);
   gulp.watch(['bower.json'], ['bowerBuild']);
   gulp.watch(["scss/*.scss"], ['cssBuild']);
@@ -78,4 +110,6 @@ gulp.task('watch', function(){
 });
 
 //////// DEFAULT TASKS //////////
-gulp.task('default', ['scripts', 'watch', 'jshint', 'serve']);
+gulp.task('default', ['build'], function(){
+  gulp.start('serve');
+});
