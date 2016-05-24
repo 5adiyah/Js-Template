@@ -1,4 +1,6 @@
 var gulp = require('gulp'),
+    browserify = require('browserify'),
+    source = require('vinyl-source-stream'),
     uglify = require('gulp-uglify'),
     compass = require('gulp-compass'),
     jshint = require('gulp-jshint'),
@@ -7,21 +9,25 @@ var gulp = require('gulp'),
     sourcemaps = require('gulp-sourcemaps'),
     plumber = require('gulp-plumber'); //Keeps watch going even if you make a syntax error
 
-//////// SCRIPTS TASKS //////////
+gulp.task('jsBrowserify', function() {
+  return browserify({ entries: ['./js/main.js'] })
+    .bundle()
+    .pipe(source('app.js'))
+    .pipe(gulp.dest('./app/js'));
+});
+
 gulp.task('scripts', function(){
   gulp.src('js/**/*.js') //Grabs all js files, uglifies it, and pipes to destination
   .pipe(uglify())
   .pipe(gulp.dest('app/js'));
 });
 
-//////// JsHint //////////
 gulp.task('jshint', function(){
   return gulp.src(['js/*.js'])
     .pipe(jshint())
     .pipe(jshint.reporter('default'));
 });
 
-//////// CSSBUILD //////////
 gulp.task('cssBuild', function() {
   return gulp.src('scss/*.scss')
     .pipe(plumber())
@@ -31,7 +37,6 @@ gulp.task('cssBuild', function() {
     .pipe(gulp.dest('./build/css'));
 });
 
-//////// BrowserSync //////////
 gulp.task('serve', function() {
   browserSync.init({
     server: {
@@ -52,11 +57,11 @@ gulp.task('jsBuild', ['jsBrowserify', 'jshint'], function(){
 gulp.task('bowerBuild', ['bower'], function(){
   browserSync.reload();
 });
+
 //////// WATCH TASKS //////////
 gulp.task('watch', function(){
   gulp.watch('js/**/*.js', ['scripts']);
 });
-
 
 //////// DEFAULT TASKS //////////
 gulp.task('default', ['scripts', 'watch', 'jshint']);
